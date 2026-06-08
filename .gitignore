@@ -1,5 +1,6 @@
 !settings.local.json
-
+.vite/
+*.png
 # IDE & Editor
 .idea/
 .vscode/
