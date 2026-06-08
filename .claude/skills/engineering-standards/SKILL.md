@@ -29,7 +29,7 @@ Follow the framework's own folder conventions. Never impose a fixed folder struc
 ### Props interfaces
 - Every component must have an explicitly named props interface
 - Named `[ComponentName]Props` — `ButtonProps`, `CardProps`
-- Export the props interface alongside the component so consumers can use it
+- Export the props interface as a named export if consumers need to reference the type
 - Extend native HTML element props when the component wraps one:
 
 ```ts
@@ -44,52 +44,65 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 ## Components
 
 - Functional components only — never class components
-- Default export for the component
-- Named export for the props interface
+- `export default function` — always, never a named export for the component itself
+- Export the props interface as a named export if consumers need to reference the type
 - One component per file — never define multiple exported components in the same file
 - Keep components focused on one responsibility — if it's doing too much, split it
 - Extract logic into custom hooks when state or effects get complex
+- Helper functions defined inside the component body using `function` declarations, not arrow functions
+- Explicit return type on the component function — `React.JSX.Element`
 
-### Component structure order
-Keep this order consistent across all component files:
+### Pages vs components
+- **Pages / views** — top level screen components. Own the layout, compose smaller components, not reused elsewhere
+- **Components** — reusable, focused pieces that don't know what page they're on
+- Never use Radix primitives directly in a page — always wrap them in your own component first
 
-1. Imports
-2. Types and interfaces
-3. Constants (if any)
-4. Component function
-5. Helper functions used only by this component
-6. Default export
+### className prop
+- Only add `className` to a component's props if consumers genuinely need to customize it from outside
+- If `className` is accepted, always use `cn` from `clsx` + `tailwind-merge` internally to handle conflicts:
 
-### Example structure
+```tsx
+import { cn } from '@/lib/utils'
+
+export default function Card({ className }: CardProps): React.JSX.Element {
+  return (
+    <div className={cn('base-styles', className)}>
+  )
+}
+```
+
+- If no `className` prop is needed, the component is fully self-contained — do not add it by default
+
+### Component structure
+Keep this order consistently across all component files, using separator comments to divide sections:
+
 ```tsx
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import CourseListItem from './CourseListItem'
 
-export interface TaskItemProps {
-  id: string
-  label: string
-  onDelete: (id: string) => void
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface CourseListProps {
+  courses: Course[]
+  setCourses: (courses: Course[]) => void
 }
 
-export default function TaskItem({ id, label, onDelete }: TaskItemProps): JSX.Element {
-  const [isDeleting, setIsDeleting] = useState(false)
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
-  function handleDelete(): void {
-    setIsDeleting(true)
-    onDelete(id)
+export default function CourseList({ courses, setCourses }: CourseListProps): React.JSX.Element {
+  function handleAddCourse(): void {
+    setCourses([...courses, { id: crypto.randomUUID() }])
   }
 
   return (
-    <div className="card">
-      <span>{label}</span>
-      <button
-        onClick={handleDelete}
-        aria-label={`Delete ${label}`}
-        className="outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary"
-      >
-        <Trash2 size={16} aria-hidden="true" />
-      </button>
-    </div>
+    <section>
+      ...
+    </section>
   )
 }
 ```
@@ -142,10 +155,10 @@ export function formatDate(date: Date): string {
 
 - Import directly from the source file — no barrel files or index re-exports
 - Group imports in this order, separated by a blank line:
-    1. React and framework imports
-    2. Third-party library imports
-    3. Internal imports (components, hooks, utils)
-    4. Type-only imports (`import type { ... }`)
+  1. React and framework imports
+  2. Third-party library imports
+  3. Internal imports (components, hooks, utils)
+  4. Type-only imports (`import type { ... }`)
 - Use `import type` for type-only imports
 
 ```tsx
@@ -185,8 +198,25 @@ Unless `claude.md` specifies otherwise, assume this stack:
 - **Lucide React** for icons
 - **Vite** as the build tool unless Next.js is detected
 
+### cn utility
+Use `cn` from `clsx` + `tailwind-merge` when a component accepts a `className` prop:
+
+```bash
+npm install clsx tailwind-merge
+```
+
+```ts
+// src/lib/utils.ts
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+export function cn(...inputs: ClassValue[]): string {
+  return twMerge(clsx(inputs))
+}
+```
+
 ### Radix usage
-Never build a custom implementation of something Radix already provides. Always reach for the Radix primitive first:
+Never use a Radix primitive directly in a page or view — always wrap it in your own component first. Never build a custom implementation of something Radix already provides:
 
 | Need | Use |
 |---|---|
@@ -210,9 +240,12 @@ Never build a custom implementation of something Radix already provides. Always 
 
 - Never use `any`
 - Never use class components
+- Never use named exports for components — always `export default function`
 - Never define multiple exported components in one file
 - Never use barrel files — import directly from the source
+- Never use Radix primitives directly in pages — wrap them first
 - Never build custom implementations of Radix primitives
 - Never omit the props interface
 - Never use default exports from utility files
 - Never mix concerns — one file, one responsibility
+- Never use arrow functions for component-internal helper functions

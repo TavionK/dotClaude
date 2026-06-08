@@ -43,7 +43,7 @@ Unless the project's `claude.md` specifies otherwise, assume:
 
 ## What to Do Before Writing Code
 
-1. Confirm you understand what is being asked — if the request is ambiguous, ask one clarifying question before proceeding
+1. Confirm you understand what is being asked — if the request is ambiguous, ask clarifying questions before proceeding
 2. Check if something similar already exists in the project — never duplicate
 3. Identify the correct location for the new file based on project structure
 4. Plan the TypeScript interface or props before writing the implementation
