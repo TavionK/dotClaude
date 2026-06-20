@@ -99,6 +99,7 @@
 - When content is deleted, focus must move to a logical nearby element
 - SPA route changes must move focus to the new page heading or main landmark
 - `sr-only` class must be used for visually hidden but screen-reader-accessible text
+- Content visually covered by an open overlay, modal, or full-screen panel must be excluded from focus and the accessibility tree using `inert`, not `display: none` — the covered content is already visually hidden by the overlay itself, so `display: none` only adds unnecessary layout reflow without providing any additional benefit. Reserve `display: none` (or a framework's hidden/show mechanism) for elements that are not already visually covered by something else.
 
 ---
 
@@ -112,21 +113,32 @@
 
 ---
 
-## React and TypeScript Specific
+## Framework-Specific Gotchas
 
+Accessibility itself is platform-agnostic — a missing label or an unreachable button is the same violation no matter what generated the HTML. This section is not a second set of a11y rules. It exists because each framework has its own ways of *accidentally* producing the violations above — through syntax, rendering behavior, or reconciliation — that are easy to miss if you're only checking the rendered output for compliance. Only frameworks actually in use on this project are listed below. Add a new subsection the first time a project uses a framework not yet covered here, rather than writing speculative rules in advance.
+
+### React and TypeScript
 - `aria-*` props use hyphenated syntax in JSX — `aria-label` not `ariaLabel`
 - Verify `useEffect` cleanup handles focus management on component unmount
 - `React.Fragment` must not break landmark structure
 - Never use `dangerouslySetInnerHTML` without considering ARIA implications
 - React portals must maintain focus trap context when used for modals
 - List `key` props must not cause focus loss on re-render
+- Tailwind: `sr-only` class is the approved pattern for visually hidden text
+- Tailwind: `focus-visible:ring-*` is the approved pattern for focus indicators
+- Tailwind: never use `outline-none` without a `focus-visible:ring-*` replacement
+- Tailwind: check `text-*` on `bg-*` combinations for contrast compliance
+- Tailwind: `dark:` variants must maintain contrast ratios in dark mode
 
-## Tailwind Specific
-- `sr-only` class is the approved pattern for visually hidden text
-- `focus-visible:ring-*` is the approved pattern for focus indicators
-- Never use `outline-none` without a `focus-visible:ring-*` replacement
-- Check `text-*` on `bg-*` combinations for contrast compliance
-- `dark:` variants must maintain contrast ratios in dark mode
+### Astro
+- Astro ships zero client-side JS by default. A component can render fully correct static markup (`aria-expanded="false"`, etc.) that silently never updates, if the `<script>` tag that's supposed to wire up the interaction is missing, broken, or scoped incorrectly. Verify dynamic ARIA states actually have working JS behind them — don't assume correct markup implies correct behavior.
+- Framework UI components dropped into an `.astro` page (React/Vue/Svelte islands) require an explicit `client:*` directive (`client:load`, `client:visible`, etc.) to hydrate. A missing directive means the component renders its initial HTML only and never becomes interactive — including any focus/ARIA-state logic inside it.
+- A plain `<script>` tag at the bottom of an `.astro` file runs automatically as real client-side JS — no directive needed. This is the correct, lower-overhead choice for simple DOM interactions (toggles, class swaps) that don't need a full framework component.
+- Tailwind: `sr-only` class is the approved pattern for visually hidden text
+- Tailwind: `focus-visible:ring-*` is the approved pattern for focus indicators
+- Tailwind: never use `outline-none` without a `focus-visible:ring-*` replacement
+- Tailwind: check `text-*` on `bg-*` combinations for contrast compliance
+- Tailwind: `dark:` variants must maintain contrast ratios in dark mode
 
 ---
 
